@@ -27,9 +27,17 @@ def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))
 
 def start(bot, update):
-    update.message.reply_text('Hello, World!!')
+    update.message.reply_text('Hello there!')
 
-def addTask(bot, update,args):
+def help(bot, update):
+    message = 'The task must be stated like this:\n'
+    message += '/new repeat hour day/month/year\n\n'
+    message += 'where __repeat__ is how many days are between each repetition, '
+    message += '__year__ is optional, __month__ is optional, and __day__ is '
+    message += 'optional if month is omitted (but the slashes aren\'t)'
+    update.message.reply_text(message)
+
+def addTask(bot, update, args):
     global chats
     tchat = update.message.chat
     ident = str(tchat.id)
@@ -38,23 +46,27 @@ def addTask(bot, update,args):
         chat = Chat(tchat.id, title)
     else:
         chat = chats[ident]
-    try:
-        if len(args) > 5:
-            t = chat.addTask(args[0],args[1],int(args[2]),int(args[3]),int(args[4]),int(args[5]))
-        elif len(args) > 4:
-            t = chat.addTask(args[0],args[1],int(args[2]),int(args[3]),int(args[4]))
-        elif len(args) > 3:
-            t = chat.addTask(args[0],args[1],int(args[2]),int(args[3]))
-        elif len(args) > 2:
-            t = chat.addTask(args[0],args[1],int(args[2]))
-        elif len(args) > 1:
-            t = chat.addTask(args[0],args[1])
+
+    # Args: name repeat hour day/month/year
+    if len(args) > 2:
+        args[2] = args[2].strip('h')
+        if len(args) > 3:
+            date = args[3].split('/')
+            for i in range(len(date)):
+                if date[i] == '':
+                    date[i] = '0'
+            t = chat.addTask(args[0],int(args[1]),int(args[2]),int(date[0]),int(date[1]),int(date[2]))
         else:
-            t = chat.addTask(args[0])
-        update.message.reply_text('Task ' + t.name + ' added')
-        chats[ident] = chat
-    except:
-        update.message.reply_text('Wrong format')
+            t = chat.addTask(args[0],int(args[1]),int(args[2]))
+    elif len(args) > 1:
+        t = chat.addTask(args[0],int(args[1]))
+    else:
+        t = chat.addTask(args[0])
+    update.message.reply_text('Task ' + t.name + ' added')
+    chats[ident] = chat
+
+#    except:
+#        update.message.reply_text('Wrong format')
 
 def getTasksToday(bot,update):
     global chats
@@ -65,15 +77,13 @@ def getTasksToday(bot,update):
         chat = Chat(tchat.id, title)
     else:
         chat = chats[ident]
-    update.message.reply_text('showing today tasks:')
+    update.message.reply_text('Today\'s tasks:')
     dateNow = datetime.now()
     tasks = chat.getTasks()
     for task in tasks:
-        update.message.reply_text('leiendo task')
-        dateTask = task.getDate()
-        update.message.reply_text(task.toString())
-    update.message.reply_text('thats all for today')
+        update.message.reply_text(t)
     chats[ident] = chat
+
 def stop(bot, update):
     pass
 
@@ -91,10 +101,10 @@ def main():
 
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("tasksToday", getTasksToday))
+    dp.add_handler(CommandHandler("today", getTasksToday))
     dp.add_handler(CommandHandler("new", addTask, pass_args=True))
     #dp.add_handler(CommandHandler("about", about))
-    #dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("stop", stop))
 
     # log all errors
