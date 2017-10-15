@@ -47,30 +47,27 @@ def addTask(bot, update, args):
         chat = Chat(tchat.id, title)
     else:
         chat = chats[ident]
-    # Args: name repeat hour day/month/year
-    if len(args) > 2:
-        args[2] = args[2].strip('h')
-        if len(args) > 3:
-            date = args[3].split('/')
-            for i in range(len(date)):
-                if date[i] == '':
-                    date[i] = '0'
-            t = chat.addTask(args[0],int(args[1]),int(args[2]),int(date[0]),int(date[1]),int(date[2]))
+    try:
+        # Args: name repeat hour day/month/year
+        if len(args) > 2:
+            args[2] = args[2].strip('h')
+            if len(args) > 3:
+                date = args[3].split('/')
+                for i in range(len(date)):
+                    if date[i] == '':
+                        date[i] = '0'
+                t = chat.addTask(args[0],int(args[1]),int(args[2]),int(date[0]),int(date[1]),int(date[2]))
+            else:
+                t = chat.addTask(args[0],int(args[1]),int(args[2]))
+        elif len(args) > 1:
+            t = chat.addTask(args[0],int(args[1]))
         else:
-            t = chat.addTask(args[0],int(args[1]),int(args[2]))
-    elif len(args) > 1:
-        t = chat.addTask(args[0],int(args[1]))
-    else:
-        t = chat.addTask(args[0])
-    update.message.reply_text('Task ' + t.name + ' added')
-    chats[ident] = chat
-
-"""
-except ValueError as ve:
-    update.message.reply_text('A task already exists under this name')
-except Exception as e:
-    update.message.reply_text('Wrong format. Send /help for more details')
-"""
+            t = chat.addTask(args[0])
+        update.message.reply_text('Task ' + t.name + ' added')
+    except ValueError as ve:
+        update.message.reply_text('A task already exists under this name')
+    except Exception as e:
+        update.message.reply_text('Wrong format. Send /help for more details')
 
 #    except:
 #        update.message.reply_text('Wrong format')

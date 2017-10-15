@@ -45,7 +45,7 @@ class Task(object):
     def __str__(self):
         s = "Task " + self.name + ":\n"
         s += "Date: " + " " + str(self.date.day) + "/" + str(self.date.month) + "/" + str(self.date.year)
-        s += " at " + str(self.date.hour) + ":00\n"
+        s += " at " + str(self.date.hour) + "h\n"
         if self.repeat > 0:
             s += "Repeats every " + str(self.repeat) + " days."
         return s
