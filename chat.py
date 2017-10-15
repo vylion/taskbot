@@ -3,17 +3,19 @@ from task import *
 class Chat(object):
     def __init__(self, ident, name):
         self.id = ident
-        self.tasks = []
+        self.tasks = {}
         self.name = name
 
     def addTask(self, name, repeat=0, hour=0, day=0, month=0, year=0):
         t = Task(name, repeat, hour, day, month, year)
-        self.tasks.append(t)
+        if name in self.tasks:
+            raise ValueError('duplicate key "' + name + '" found')
+        self.tasks[name] = t
         print('new task ' + t.name + ' added:')
         print(str(t) + '\n')
         return t
 
-    def getTasks(self, y=0, d=0, m=0, y2=0, d2=0, m2=0):
+    def getTasksRange(self, d=0, m=0, y=0, d2=0, m2=0, y2=0):
         dateNow = datetime.now()
         if y == 0:
             y = dateNow.year
@@ -28,13 +30,33 @@ class Chat(object):
         if d2 == 0:
             d2 = dateNow.day
         dateIni = datetime(y, m, d)
-        dateEnd = datetime(y2, m2, d2)
+        dateEnd = datetime(y2, m2, d2, 23)
         resultTasks = []
         for t in self.tasks:
-            print(t)
-            if t.getDate() >= dateIni and t.getDate() <= dateEnd:
-                resultTasks.append(t)
+            task = self.tasks[t]
+            print(task)
+            if task.getDate() >= dateIni and task.getDate() <= dateEnd:
+                resultTasks.append(task)
         return resultTasks
 
-    def getChatName(self):
-        return self.name
+    def getTasks(self):
+        resultTasks = []
+        for _, v in self.tasks.items():
+            resultTasks.append(v)
+        return resultTasks
+
+    def deleteTask(self, name):
+        if name in self.tasks:
+            del self.tasks[name]
+            return True
+        return False
+
+    def markDone(self, name):
+        if name in self.tasks:
+            t = self.tasks[name]
+            if t.repeat > 0:
+                t.date += timedelta(t.repeat)
+            else:
+                del self.tasks[name]
+            return True
+        return False

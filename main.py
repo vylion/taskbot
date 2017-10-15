@@ -1,4 +1,5 @@
 
+from telegram import ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.error import *
 from chat import *
@@ -31,11 +32,11 @@ def start(bot, update):
 
 def help(bot, update):
     message = 'The task must be stated like this:\n'
-    message += '/new repeat hour day/month/year\n\n'
-    message += 'where __repeat__ is how many days are between each repetition, '
-    message += '__year__ is optional, __month__ is optional, and __day__ is '
+    message += '/new name repeat hour day/month/year\n\n'
+    message += 'where _repeat_ is how many days are between each repetition, '
+    message += '_year_ is optional, _month_ is optional, and _day_ is '
     message += 'optional if month is omitted (but the slashes aren\'t)'
-    update.message.reply_text(message)
+    update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
 
 def addTask(bot, update, args):
     global chats
@@ -46,7 +47,6 @@ def addTask(bot, update, args):
         chat = Chat(tchat.id, title)
     else:
         chat = chats[ident]
-
     # Args: name repeat hour day/month/year
     if len(args) > 2:
         args[2] = args[2].strip('h')
@@ -65,10 +65,17 @@ def addTask(bot, update, args):
     update.message.reply_text('Task ' + t.name + ' added')
     chats[ident] = chat
 
+"""
+except ValueError as ve:
+    update.message.reply_text('A task already exists under this name')
+except Exception as e:
+    update.message.reply_text('Wrong format. Send /help for more details')
+"""
+
 #    except:
 #        update.message.reply_text('Wrong format')
 
-def getTasksToday(bot,update):
+def getTasks(bot, update, time):
     global chats
     tchat = update.message.chat
     ident = str(tchat.id)
@@ -77,15 +84,89 @@ def getTasksToday(bot,update):
         chat = Chat(tchat.id, title)
     else:
         chat = chats[ident]
-    update.message.reply_text('Today\'s tasks:')
+
     dateNow = datetime.now()
-    tasks = chat.getTasks()
-    for task in tasks:
-        update.message.reply_text(t)
+    if time is 'today':
+        tasks = chat.getTasksRange()
+    elif time == 'all':
+        tasks = chat.getTasks()
+    elif time == 'week':
+        now = datetime.now()
+        week = now + timedelta(7)
+        tasks = chat.getTasksRange(now.day, now.month, now.year, week.day, week.month, week.year)
+    elif time == 'month':
+        now = datetime.now()
+        _, delta = monthrange(now.year, now.month)
+        month = now + timedelta(delta)
+        tasks = chat.getTasksRange(now.day, now.month, now.year, month.day, month.month, month.year)
+    elif time == 'fortnight':
+        now = datetime.now()
+        fort = now + timedelta(14)
+        tasks = chat.getTasksRange(now.day, now.month, now.year, fort.day, fort.month, fort.year)
+
+    if len(tasks) == 0:
+        update.message.reply_text('There are no tasks under this criteria.')
+    else:
+        for t in tasks:
+            update.message.reply_text(str(t))
     chats[ident] = chat
+
+def getTasksToday(bot,update):
+    update.message.reply_text('Today\'s tasks:')
+    getTasks(bot, update, 'today')
+
+def getTasksAll(bot,update):
+    update.message.reply_text('All tasks:')
+    getTasks(bot, update, 'all')
+
+def getTasksWeek(bot, update):
+    update.message.reply_text('Tasks on a week from now:')
+    getTasks(bot, update, 'week')
+
+def getTasksMonth(bot, update):
+    update.message.reply_text('Tasks on a month from now:')
+    getTasks(bot, update, 'month')
+
+def getTasksFort(bot, update):
+    update.message.reply_text('Tasks on 2 weeks from now:')
+    getTasks(bot, update, 'fortnight')
 
 def stop(bot, update):
     pass
+
+def deleteTask(bot, update, args):
+    global chats
+    tchat = update.message.chat
+    ident = str(tchat.id)
+    if not ident in chats:
+        title = get_chatname(tchat)
+        chat = Chat(tchat.id, title)
+    else:
+        chat = chats[ident]
+
+    for name in args:
+        if chat.deleteTask(name):
+            update.message.reply_text('Task ' + name + ' deleted succesfully.')
+        else:
+            update.message.reply_text('There is no task with name ' + name + '.')
+    chats[ident] = chat
+
+def checkTask(bot, update, args):
+    global chats
+    tchat = update.message.chat
+    ident = str(tchat.id)
+    if not ident in chats:
+        title = get_chatname(tchat)
+        chat = Chat(tchat.id, title)
+    else:
+        chat = chats[ident]
+
+    for name in args:
+        if chat.markDone(name):
+            update.message.reply_text('Task ' + name + ' checked out.')
+        else:
+            update.message.reply_text('There is no task with name ' + name + '.')
+    chats[ident] = chat
 
 def main():
     parser = argparse.ArgumentParser(description='A Telegram task manager bot.')
@@ -102,7 +183,13 @@ def main():
     # on different commands - answer in Telegram
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("today", getTasksToday))
+    dp.add_handler(CommandHandler("all", getTasksAll))
+    dp.add_handler(CommandHandler("month", getTasksMonth))
+    dp.add_handler(CommandHandler("week", getTasksWeek))
+    dp.add_handler(CommandHandler("fortnight", getTasksFort))
     dp.add_handler(CommandHandler("new", addTask, pass_args=True))
+    dp.add_handler(CommandHandler("delete", deleteTask, pass_args=True))
+    dp.add_handler(CommandHandler("check", checkTask, pass_args=True))
     #dp.add_handler(CommandHandler("about", about))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("stop", stop))
