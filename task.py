@@ -17,12 +17,12 @@ class Task(object):
             date = date.replace(year=y)
 
         if m > 0:
-            while now >= datetime(date.year, m, date.day, date.hour) and not fixed:
+            while now > datetime(date.year, m, date.day, date.hour) and not fixed:
                 date = date.replace(year=(date.year+1))
             date = date.replace(month=m)
 
         if d > 0:
-            if now >= datetime(date.year, date.month, d, date.hour) and not fixed:
+            if now > datetime(date.year, date.month, d, date.hour) and not fixed:
                 _, delta = monthrange(date.year, date.month)
                 date += timedelta(delta) # Days of date.month
             date = date.replace(day=d)
@@ -31,6 +31,8 @@ class Task(object):
             if now >= datetime(date.year, date.month, date.day, h) and not fixed:
                 date += timedelta(1)
             date = datetime(date.year, date.month, date.day, h)
+        else:
+            date = datetime(date.year, date.month, date.day, date.hour+1)
 
         while now >= date and self.repeat > 0:
             date += timedelta(self.repeat)

@@ -68,6 +68,7 @@ def addTask(bot, update, args):
         update.message.reply_text('A task already exists under this name')
     except Exception as e:
         update.message.reply_text('Wrong format. Send /help for more details')
+    chats[ident] = chat
 
 #    except:
 #        update.message.reply_text('Wrong format')
